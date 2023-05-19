@@ -312,6 +312,7 @@ function Invoke-SCuBA {
                 'OutRegoFileName' = $ScubaConfig.OutRegoFileName;
                 'OutReportName' = $ScubaConfig.OutReportName;
                 'DarkMode' = $DarkMode;
+                'Quiet' = $true;
             }
             Invoke-ReportCreation @ReportParams
         }
