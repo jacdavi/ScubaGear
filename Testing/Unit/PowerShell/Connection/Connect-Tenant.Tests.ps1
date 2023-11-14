@@ -16,13 +16,7 @@ InModuleScope Connection {
             Mock Add-PowerAppsAccount -MockWith {}
             function Connect-EXOHelper {}
             Mock Connect-EXOHelper -MockWith {}
-            Mock Select-MgProfile -MockWith {}
-            Mock Get-MgProfile -MockWith {
-                [pscustomobject]@{
-                    Name = "alpha";
-                }
-            }
-            Mock Get-MgOrganization -MockWith {
+            Mock Get-MgBetaOrganization -MockWith {
                 return [pscustomobject]@{
                     DisplayName     = "DisplayName";
                     Name            = "DomainName";
@@ -46,11 +40,10 @@ InModuleScope Connection {
             @{ProductNames = "aad"}
             @{ProductNames = "defender"}
             @{ProductNames = "exo"}
-            @{ProductNames = "onedrive"}
             @{ProductNames = "powerplatform"}
             @{ProductNames = "sharepoint"}
             @{ProductNames = "teams"}
-            @{ProductNames = "aad", "defender", "exo", "onedrive", "powerplatform", "sharepoint", "teams"}
+            @{ProductNames = "aad", "defender", "exo", "powerplatform", "sharepoint", "teams"}
 
         ){
             $FailedAuthList = Connect-Tenant -ProductNames $ProductNames -M365Environment $Endpoint

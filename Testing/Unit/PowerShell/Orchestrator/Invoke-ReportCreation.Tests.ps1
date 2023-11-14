@@ -8,7 +8,10 @@ InModuleScope Orchestrator {
             Mock -ModuleName Orchestrator New-Report {}
             function Pluralize {}
             Mock -ModuleName Orchestrator Pluralize {}
-
+            function Import-SecureBaseline{}
+            Mock -ModuleName Orchestrator Import-SecureBaseline {
+                return @()
+            }
             Mock -CommandName Write-Progress {}
             Mock -CommandName Join-Path { "." }
             Mock -CommandName Out-File {}
@@ -32,6 +35,22 @@ InModuleScope Orchestrator {
                     OutReportName       = "BaselineReports"
                 }
             }
+            It 'Do it quietly (Do not automatically show report)' {
+                $ProviderParameters += @{
+                    ProductNames = @("aad")
+                }
+                { Invoke-ReportCreation @ProviderParameters -Quiet} | Should -Not -Throw
+                Should -Invoke -CommandName Invoke-Item -Exactly -Times 0
+                $ProviderParameters.ProductNames = @()
+            }
+            It 'Show report' {
+                $ProviderParameters += @{
+                    ProductNames = @("aad")
+                }
+                { Invoke-ReportCreation @ProviderParameters} | Should -Not -Throw
+                Should -Invoke -CommandName Invoke-Item -Exactly -Times 1 -ParameterFilter {-Not [string]::IsNullOrEmpty($Path) }
+                $ProviderParameters.ProductNames = @()
+            }
             It 'With -ProductNames "aad", should not throw' {
                 $ProviderParameters += @{
                     ProductNames = @("aad")
@@ -47,12 +66,6 @@ InModuleScope Orchestrator {
             It 'With -ProductNames "exo", should not throw' {
                 $ProviderParameters += @{
                     ProductNames = @("exo")
-                }
-                { Invoke-ReportCreation @ProviderParameters } | Should -Not -Throw
-            }
-            It 'With -ProductNames "onedrive", should not throw' {
-                $ProviderParameters += @{
-                    ProductNames = @("onedrive")
                 }
                 { Invoke-ReportCreation @ProviderParameters } | Should -Not -Throw
             }
@@ -76,7 +89,7 @@ InModuleScope Orchestrator {
             }
             It 'With all products, should not throw' {
                 $ProviderParameters += @{
-                    ProductNames = @("aad", "defender", "exo", "onedrive", "powerplatform", "sharepoint", "teams")
+                    ProductNames = @("aad", "defender", "exo", "powerplatform", "sharepoint", "teams")
                 }
                 { Invoke-ReportCreation @ProviderParameters } | Should -Not -Throw
             }
@@ -97,7 +110,7 @@ InModuleScope Orchestrator {
             }
             It 'With all products, should not throw' {
                 $ProviderParameters += @{
-                    ProductNames = @("aad", "defender", "exo", "onedrive", "powerplatform", "sharepoint", "teams")
+                    ProductNames = @("aad", "defender", "exo", "powerplatform", "sharepoint", "teams")
                 }
                 { Invoke-ReportCreation @ProviderParameters } | Should -Not -Throw
             }

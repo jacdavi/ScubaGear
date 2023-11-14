@@ -12,7 +12,7 @@
 RootModule = './ScubaGear.psm1'
 
 # Version number of this module.
-ModuleVersion = '0.3.0'
+ModuleVersion = '1.0.0'
 
 # Supported PSEditions
 CompatiblePSEditions = 'Desktop'
@@ -27,7 +27,7 @@ Author = 'CISA'
 CompanyName = 'Cybersecurity and Infrastructure Security Agency'
 
 # Copyright statement for this module
-Copyright = '(c) 2022 CISA. All rights reserved.'
+Copyright = '(c) 2023 CISA. All rights reserved.'
 
 # Description of the functionality provided by this module
 Description = @"
@@ -61,6 +61,7 @@ PowerShellVersion = '5.1'
 
 # Script files (.ps1) that are run in the caller's environment prior to importing this module.
 ScriptsToProcess = @(
+    './RaiseFunctionCap.ps1',
     './Dependencies.ps1'
 )
 

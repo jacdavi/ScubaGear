@@ -1,50 +1,30 @@
 package exo
 import future.keywords
+import data.report.utils.NotCheckedDetails
+import data.report.utils.DefenderMirrorDetails
+import data.report.utils.Format
+import data.report.utils.ReportDetailsBoolean
+import data.report.utils.Description
+import data.report.utils.ReportDetailsString
 
-Format(Array) = format_int(count(Array), 10)
-
-Description(String1, String2, String3) = trim(concat(" ", [String1, concat(" ", [String2, String3])]), " ")
-
-ReportDetailsBoolean(Status) = "Requirement met" if {Status == true}
-
-ReportDetailsBoolean(Status) = "Requirement not met" if {Status == false}
-
-ReportDetailsArray(Status, Array1, Array2) =  Detail if {
+ReportDetailsArray(Status, Array1, Array2) := Detail if {
     Status == true
     Detail := "Requirement met"
 }
 
-ReportDetailsArray(Status, Array1, Array2) = Detail if {
+ReportDetailsArray(Status, Array1, Array2) := Detail if {
 	Status == false
     Fraction := concat(" of ", [Format(Array1), Format(Array2)])
 	String := concat(", ", Array1)
     Detail := Description(Fraction, "agency domain(s) found in violation:", String)
 }
 
-ReportDetailsString(Status, String) =  Detail if {
-    Status == true
-    Detail := "Requirement met"
-}
-
-ReportDetailsString(Status, String) =  Detail if {
-    Status == false
-    Detail := String
-}
-
-AllDomains := {Domain.domain | Domain = input.spf_records[_]}
-
-CustomDomains[Domain.domain] {
-    Domain = input.spf_records[_]
-    not endswith( Domain.domain, "onmicrosoft.com")
-}
-
-
-################
-# Baseline 2.1 #
-################
+# this should be allowed https://github.com/StyraInc/regal/issues/415
+# regal ignore:prefer-set-or-object-rule
+AllDomains := {Domain.domain | Domain := input.spf_records[_]}
 
 #
-# Baseline 2.1: Policy 1
+# MS.EXO.1.1v1
 #--
 RemoteDomainsAllowingForwarding[Domain.DomainName] {
     Domain := input.remote_domains[_]
@@ -52,8 +32,7 @@ RemoteDomainsAllowingForwarding[Domain.DomainName] {
 }
 
 tests[{
-    "Requirement" : "Automatic forwarding to external domains SHALL be disabled",
-    "Control" : "EXO 2.1",
+    "PolicyId" : "MS.EXO.1.1v1",
     "Criticality" : "Shall",
     "Commandlet" : ["Get-RemoteDomain"],
     "ActualValue" : Domains,
@@ -66,40 +45,34 @@ tests[{
 }
 #--
 
-
-################
-# Baseline 2.2 #
-################
-
 #
-# Baseline 2.2: Policy 1
+# MS.EXO.2.1v1
 #--
 # At this time we are unable to test for X because of Y
 tests[{
-    "Requirement" : "A list of approved IP addresses for sending mail SHALL be maintained",
-    "Control" : "EXO 2.2",
+    "PolicyId" : PolicyId,
     "Criticality" : "Shall/Not-Implemented",
     "Commandlet" : [],
     "ActualValue" : [],
-    "ReportDetails" : "Currently cannot be checked automatically. See Exchange Online Secure Configuration Baseline policy 2.# for instructions on manual check",
+    "ReportDetails" : NotCheckedDetails(PolicyId),
     "RequirementMet" : false
 }] {
+    PolicyId := "MS.EXO.2.1v1"
     true
 }
 #--
 
 #
-# Baseline 2.2: Policy 2
+# MS.EXO.2.2v1
 #--
 DomainsWithoutSpf[DNSResponse.domain] {
     DNSResponse := input.spf_records[_]
-    SpfRecords := {Record | Record = DNSResponse.rdata[_]; startswith(Record, "v=spf1 ")}
+    SpfRecords := {Record | Record := DNSResponse.rdata[_]; startswith(Record, "v=spf1 ")}
     count(SpfRecords) == 0
 }
 
 tests[{
-    "Requirement" : "An SPF policy(s) that designates only these addresses as approved senders SHALL be published",
-    "Control" : "EXO 2.2",
+    "PolicyId" : "MS.EXO.2.2v1",
     "Criticality" : "Shall",
     "Commandlet" : ["Get-ScubaSpfRecords", "Get-AcceptedDomain"],
     "ActualValue" : Domains,
@@ -111,13 +84,8 @@ tests[{
 }
 #--
 
-
-################
-# Baseline 2.3 #
-################
-
 #
-# Baseline 2.3: Policy 1
+# MS.EXO.3.1v1
 #--
 DomainsWithDkim[DkimConfig.Domain] {
     DkimConfig := input.dkim_config[_]
@@ -129,26 +97,20 @@ DomainsWithDkim[DkimConfig.Domain] {
 }
 
 tests[{
-    "Requirement" : "DKIM SHOULD be enabled for any custom domain",
-    "Control" : "EXO 2.3",
+    "PolicyId" : "MS.EXO.3.1v1",
     "Criticality" : "Should",
     "Commandlet" : ["Get-DkimSigningConfig", "Get-ScubaDkimRecords", "Get-AcceptedDomain"],
     "ActualValue" : [input.dkim_records, input.dkim_config],
-    "ReportDetails" : ReportDetailsArray(Status, DomainsWithoutDkim, CustomDomains),
+    "ReportDetails" : ReportDetailsArray(Status, DomainsWithoutDkim, AllDomains),
     "RequirementMet" : Status
 }] {
-    DomainsWithoutDkim := CustomDomains - DomainsWithDkim
+    DomainsWithoutDkim := AllDomains - DomainsWithDkim
     Status := count(DomainsWithoutDkim) == 0
 }
 #--
 
-
-################
-# Baseline 2.4 #
-################
-
 #
-# Baseline 2.4: Policy 1
+# MS.EXO.4.1v1
 #--
 DomainsWithoutDmarc[DmarcRecord.domain] {
     DmarcRecord := input.dmarc_records[_]
@@ -157,8 +119,7 @@ DomainsWithoutDmarc[DmarcRecord.domain] {
 }
 
 tests[{
-    "Requirement" : "A DMARC policy SHALL be published for every second-level domain",
-    "Control" : "EXO 2.4",
+    "PolicyId" : "MS.EXO.4.1v1",
     "Criticality" : "Shall",
     "Commandlet" : ["Get-ScubaDmarcRecords", "Get-AcceptedDomain"],
     "ActualValue" : input.dmarc_records,
@@ -171,7 +132,7 @@ tests[{
 #--
 
 #
-# Baseline 2.4: Policy 2
+# MS.EXO.4.2v1
 #--
 DomainsWithoutPreject[DmarcRecord.domain] {
     DmarcRecord := input.dmarc_records[_]
@@ -180,8 +141,7 @@ DomainsWithoutPreject[DmarcRecord.domain] {
 }
 
 tests[{
-    "Requirement" : "The DMARC message rejection option SHALL be \"p=reject\"",
-    "Control" : "EXO 2.4",
+    "PolicyId" : "MS.EXO.4.2v1",
     "Criticality" : "Shall",
     "Commandlet" : ["Get-ScubaDmarcRecords", "Get-AcceptedDomain"],
     "ActualValue" : input.dmarc_records,
@@ -194,17 +154,24 @@ tests[{
 #--
 
 #
-# Baseline 2.4: Policy 3
+# MS.EXO.4.3v1
 #--
 DomainsWithoutDHSContact[DmarcRecord.domain] {
     DmarcRecord := input.dmarc_records[_]
-    ValidAnswers := [Answer | Answer := DmarcRecord.rdata[_]; contains(Answer, "mailto:reports@dmarc.cyber.dhs.gov")]
+    Rdata := DmarcRecord.rdata[_]
+    DmarcFields := split(Rdata, ";")
+    RuaFields := [Rua | Rua := DmarcFields[_]; contains(Rua, "rua=")]
+    ValidAnswers := [Answer | Answer := RuaFields[_]; contains(Answer, "mailto:reports@dmarc.cyber.dhs.gov")]
     count(ValidAnswers) == 0
 }
 
+DomainsWithoutDHSContact[DmarcRecord.domain] {
+    DmarcRecord := input.dmarc_records[_]
+    count(DmarcRecord.rdata) == 0 # failed dns query
+}
+
 tests[{
-    "Requirement" : "The DMARC point of contact for aggregate reports SHALL include reports@dmarc.cyber.dhs.gov",
-    "Control" : "EXO 2.4",
+    "PolicyId" : "MS.EXO.4.3v1",
     "Criticality" : "Shall",
     "Commandlet" : ["Get-ScubaDmarcRecords", "Get-AcceptedDomain"],
     "ActualValue" : input.dmarc_records,
@@ -217,17 +184,29 @@ tests[{
 #--
 
 #
-# Baseline 2.4: Policy 4
+# MS.EXO.4.4v1
 #--
 DomainsWithoutAgencyContact[DmarcRecord.domain] {
     DmarcRecord := input.dmarc_records[_]
-    EnoughContacts := [Answer | Answer := DmarcRecord.rdata[_]; count(split(Answer, "@")) >= 3]
-    count(EnoughContacts) == 0
+    Rdata := DmarcRecord.rdata[_]
+    DmarcFields := split(Rdata, ";")
+    RuaFields := [Rua | Rua := DmarcFields[_]; contains(Rua, "rua=")]
+    RufFields := [Ruf | Ruf := DmarcFields[_]; contains(Ruf, "ruf=")]
+    # 2 or more emails including reports@dmarc.cyber.dhs.gov checked by policy 4.3
+    RuaCountAcceptable := count([Answer | Answer := RuaFields[_]; count(split(Answer, "@")) > 2]) >= 1
+    # 1 or more emails
+    RufCountAcceptable := count([Answer | Answer := RufFields[_]; count(split(Answer, "@")) > 1]) >= 1
+    Conditions := [RuaCountAcceptable, RufCountAcceptable]
+    count([Condition | Condition := Conditions[_]; Condition == false]) > 0
+}
+
+DomainsWithoutAgencyContact[DmarcRecord.domain] {
+    DmarcRecord := input.dmarc_records[_]
+    count(DmarcRecord.rdata) == 0 # failed dns query
 }
 
 tests[{
-    "Requirement" : "An agency point of contact SHOULD be included for aggregate and/or failure reports",
-    "Control" : "EXO 2.4",
+    "PolicyId" : "MS.EXO.4.4v1",
     "Criticality" : "Should",
     "Commandlet" : ["Get-ScubaDmarcRecords", "Get-AcceptedDomain"],
     "ActualValue" : input.dmarc_records,
@@ -239,13 +218,8 @@ tests[{
 }
 #--
 
-
-################
-# Baseline 2.5 #
-################
-
 #
-# Baseline 2.5: Policy 1
+# MS.EXO.5.1v1
 #--
 
 SmtpClientAuthEnabled[TransportConfig.Name] {
@@ -254,8 +228,7 @@ SmtpClientAuthEnabled[TransportConfig.Name] {
 }
 
 tests[{
-    "Requirement" : "SMTP AUTH SHALL be disabled in Exchange Online",
-    "Control" : "EXO 2.5",
+    "PolicyId" : "MS.EXO.5.1v1",
     "Criticality" : "Shall",
     "Commandlet" : ["Get-TransportConfig"],
     "ActualValue" : input.transport_config,
@@ -266,295 +239,264 @@ tests[{
 }
 #--
 
-
-################
-# Baseline 2.6 #
-################
-
-# Are both the tests supposed to be the same?
-
 #
-# Baseline 2.6: Policy 1
+# MS.EXO.6.1v1
 #--
 
-SharingPolicyAllowedSharing[SharingPolicy.Name] {
+SharingPolicyContactsAllowedAllDomains[SharingPolicy.Name] {
     SharingPolicy := input.sharing_policy[_]
-    InList := "*" in SharingPolicy.Domains
-    InList == true
+    Domains := SharingPolicy.Domains[_]
+    contains(Domains, "*")
+    contains(Domains, "Contacts")
 }
 
-
 tests[{
-    "Requirement" : "Contact folders SHALL NOT be shared with all domains, although they MAY be shared with specific domains",
-    "Control" : "EXO 2.6",
+    "PolicyId" : "MS.EXO.6.1v1",
     "Criticality" : "Shall",
     "Commandlet" : ["Get-SharingPolicy"],
     "ActualValue" : input.sharing_policy,
     "ReportDetails" : ReportDetailsString(Status, ErrorMessage),
     "RequirementMet" : Status
 }] {
-    ErrorMessage := "Wildcard domain (\"*\") in shared domains list, enabling sharing with all domains by default"
-
-    Status := count(SharingPolicyAllowedSharing) == 0
+    ContactsSharingPolicies := SharingPolicyContactsAllowedAllDomains
+    ErrorMessage := Description(Format(ContactsSharingPolicies), "sharing polic(ies) are sharing contacts folders with all domains by default:", concat(", ", ContactsSharingPolicies))
+    Status := count(ContactsSharingPolicies) == 0
 }
 #--
 
 #
-# Baseline 2.6: Policy 2
+# MS.EXO.6.2v1
 #--
 
+SharingPolicyCalendarAllowedAllDomains[SharingPolicy.Name] {
+    SharingPolicy := input.sharing_policy[_]
+    Domains := SharingPolicy.Domains[_]
+    contains(Domains, "*")
+    contains(Domains, "Calendar")
+}
+
 tests[{
-    "Requirement" : "Calendar details SHALL NOT be shared with all domains, although they MAY be shared with specific domains",
-    "Control" : "EXO 2.6",
+    "PolicyId" : "MS.EXO.6.2v1",
     "Criticality" : "Shall",
     "Commandlet" : ["Get-SharingPolicy"],
     "ActualValue" : input.sharing_policy,
     "ReportDetails" : ReportDetailsString(Status, ErrorMessage),
     "RequirementMet" : Status
 }] {
-    ErrorMessage := "Wildcard domain (\"*\") in shared domains list, enabling sharing with all domains by default"
-    Status := count(SharingPolicyAllowedSharing) == 0
+    CalendarSharingPolicies := SharingPolicyCalendarAllowedAllDomains
+    ErrorMessage := Description(Format(CalendarSharingPolicies), "sharing polic(ies) are sharing calendar details with all domains by default:", concat(", ", CalendarSharingPolicies))
+    Status := count(CalendarSharingPolicies) == 0
 }
 #--
 
-
-################
-# Baseline 2.7 #
-################
 #
-# Baseline 2.7: Policy 1
+# MS.EXO.7.1v1
 #--
 tests[{
-    "Requirement" : "External sender warnings SHALL be implemented",
-    "Control" : "EXO 2.7",
+    "PolicyId" : "MS.EXO.7.1v1",
     "Criticality" : "Shall",
     "Commandlet" : ["Get-TransportRule"],
-    "ActualValue" : [Rule.FromScope | Rule = Rules[_]],
+    "ActualValue" : [Rule.FromScope | Rule := Rules[_]],
     "ReportDetails" : ReportDetailsString(Status, ErrorMessage),
     "RequirementMet" : Status
 }] {
     Rules := input.transport_rule
     ErrorMessage := "No transport rule found that applies warnings to emails received from outside the organization"
-    EnabledRules := [rule | rule = Rules[_]; rule.State == "Enabled"; rule.Mode == "Enforce"]
-    Conditions := [IsCorrectScope | IsCorrectScope = EnabledRules[_].FromScope == "NotInOrganization"]
-    Status := count([Condition | Condition = Conditions[_]; Condition == true]) > 0
+    EnabledRules := [rule | rule := Rules[_]; rule.State == "Enabled"; rule.Mode == "Enforce"; count(rule.PrependSubject) >=1]
+    Conditions := [IsCorrectScope | IsCorrectScope := EnabledRules[_].FromScope == "NotInOrganization"]
+    Status := count([Condition | Condition := Conditions[_]; Condition == true]) > 0
 }
 #--
 
-
-################
-# Baseline 2.8 #
-################
-
 #
-# Baseline 2.8: Policy 1
+# MS.EXO.8.1v1
 #--
 # At this time we are unable to test because settings are configured in M365 Defender or using a third-party app
 tests[{
-    "Requirement" : "A DLP solution SHALL be used. The selected DLP solution SHOULD offer services comparable to the native DLP solution offered by Microsoft",
-    "Control" : "EXO 2.8",
+    "PolicyId" : PolicyId,
     "Criticality" : "Shall/3rd Party",
     "Commandlet" : [],
     "ActualValue" : [],
-    "ReportDetails" : "Custom implementation allowed. If you are using Defender to fulfill this requirement, run the Defender version of this script. Otherwise, use a 3rd party tool OR manually check",
+    "ReportDetails" : DefenderMirrorDetails(PolicyId),
     "RequirementMet" : false
 }] {
+    PolicyId := "MS.EXO.8.1v1"
     true
 }
 #--
 
 #
-# Baseline 2.8: Policy 2
+# MS.EXO.8.2v1
 #--
 # At this time we are unable to test because settings are configured in M365 Defender or using a third-party app
 tests[{
-    "Requirement" : "The DLP solution SHALL protect PII and sensitive information, as defined by the agency. At a minimum, the sharing of credit card numbers, Taxpayer Identification Numbers (TIN), and Social Security Numbers (SSN) via email SHALL be restricted",
-    "Control" : "EXO 2.8",
+    "PolicyId" : PolicyId,
     "Criticality" : "Shall/3rd Party",
     "Commandlet" : [],
     "ActualValue" : [],
-    "ReportDetails" : "Custom implementation allowed. If you are using Defender to fulfill this requirement, run the Defender version of this script. Otherwise, use a 3rd party tool OR manually check",
+    "ReportDetails" : DefenderMirrorDetails(PolicyId),
     "RequirementMet" : false
 }] {
-    true
-}
-#--
-
-
-################
-# Baseline 2.9 #
-################
-
-#
-# Baseline 2.9: Policy 1
-#--
-# At this time we are unable to test because settings are configured in M365 Defender or using a third-party app
-tests[{
-    "Requirement" : "Emails SHALL be filtered by the file types of included attachments. The selected filtering solution SHOULD offer services comparable to Microsoft Defender's Common Attachment Filter",
-    "Control" : "EXO 2.9",
-    "Criticality" : "Shall/3rd Party",
-    "Commandlet" : [],
-    "ActualValue" : [],
-    "ReportDetails" : "Custom implementation allowed. If you are using Defender to fulfill this requirement, run the Defender version of this script. Otherwise, use a 3rd party tool OR manually check",
-    "RequirementMet" : false
-}] {
+    PolicyId := "MS.EXO.8.2v1"
     true
 }
 #--
 
 #
-# Baseline 2.9: Policy 2
+# MS.EXO.9.1v1
 #--
 # At this time we are unable to test because settings are configured in M365 Defender or using a third-party app
 tests[{
-    "Requirement" : "The attachment filter SHOULD attempt to determine the true file type and assess the file extension",
-    "Control" : "EXO 2.9",
+    "PolicyId" : PolicyId,
+    "Criticality" : "Shall/3rd Party",
+    "Commandlet" : [],
+    "ActualValue" : [],
+    "ReportDetails" : DefenderMirrorDetails(PolicyId),
+    "RequirementMet" : false
+}] {
+    PolicyId := "MS.EXO.9.1v1"
+    true
+}
+#--
+
+#
+# MS.EXO.9.2v1
+#--
+# At this time we are unable to test because settings are configured in M365 Defender or using a third-party app
+tests[{
+    "PolicyId" : PolicyId,
     "Criticality" : "Should/3rd Party",
     "Commandlet" : [],
     "ActualValue" : [],
-    "ReportDetails" : "Custom implementation allowed. If you are using Defender to fulfill this requirement, run the Defender version of this script. Otherwise, use a 3rd party tool OR manually check",
+    "ReportDetails" : DefenderMirrorDetails(PolicyId),
     "RequirementMet" : false
 }] {
+    PolicyId := "MS.EXO.9.2v1"
     true
 }
 #--
 
 #
-# Baseline 2.9: Policy 3
+# MS.EXO.9.3v1
 #--
 # At this time we are unable to test because settings are configured in M365 Defender or using a third-party app
 tests[{
-    "Requirement" : "Disallowed file types SHALL be determined and set. At a minimum, click-to-run files SHOULD be blocked (e.g., .exe, .cmd, and .vbe)",
-    "Control" : "EXO 2.9",
+    "PolicyId" : PolicyId,
     "Criticality" : "Shall/3rd Party",
     "Commandlet" : [],
     "ActualValue" : [],
-    "ReportDetails" : "Custom implementation allowed. If you are using Defender to fulfill this requirement, run the Defender version of this script. Otherwise, use a 3rd party tool OR manually check",
+    "ReportDetails" : DefenderMirrorDetails(PolicyId),
     "RequirementMet" : false
 }] {
+    PolicyId := "MS.EXO.9.3v1"
     true
 }
 #--
 
-
-#################
-# Baseline 2.10 #
-#################
-
 #
-# Baseline 2.10: Policy 1
+# MS.EXO.10.1v1
 #--
 # At this time we are unable to test because settings are configured in M365 Defender or using a third-party app
 tests[{
-    "Requirement" : "Emails SHALL be scanned for malware",
-    "Control" : "EXO 2.10",
+    "PolicyId" : PolicyId,
     "Criticality" : "Shall/3rd Party",
     "Commandlet" : [],
     "ActualValue" : [],
-    "ReportDetails" : "Custom implementation allowed. If you are using Defender to fulfill this requirement, run the Defender version of this script. Otherwise, use a 3rd party tool OR manually check",
+    "ReportDetails" : DefenderMirrorDetails(PolicyId),
     "RequirementMet" : false
 }] {
+    PolicyId := "MS.EXO.10.1v1"
     true
 }
 #--
 
 #
-# Baseline 2.10: Policy 2
+# MS.EXO.10.2v1
 #--
 # At this time we are unable to test because settings are configured in M365 Defender or using a third-party app
 tests[{
-    "Requirement" : "Emails identified as containing malware SHALL be quarantined or dropped",
-    "Control" : "EXO 2.10",
+    "PolicyId" : PolicyId,
     "Criticality" : "Shall/3rd Party",
     "Commandlet" : [],
     "ActualValue" : [],
-    "ReportDetails" : "Custom implementation allowed. If you are using Defender to fulfill this requirement, run the Defender version of this script. Otherwise, use a 3rd party tool OR manually check",
+    "ReportDetails" : DefenderMirrorDetails(PolicyId),
     "RequirementMet" : false
 }] {
+    PolicyId := "MS.EXO.10.2v1"
     true
 }
 #--
 
 #
-# Baseline 2.10: Policy 3
+# MS.EXO.10.3v1
 #--
 # At this time we are unable to test because settings are configured in M365 Defender or using a third-party app
 tests[{
-    "Requirement" : "Email scanning SHOULD be capable of reviewing emails after delivery",
-    "Control" : "EXO 2.10",
+    "PolicyId" : PolicyId,
     "Criticality" : "Should/3rd Party",
     "Commandlet" : [],
     "ActualValue" : [],
-    "ReportDetails" : "Custom implementation allowed. If you are using Defender to fulfill this requirement, run the Defender version of this script. Otherwise, use a 3rd party tool OR manually check",
+    "ReportDetails" : DefenderMirrorDetails(PolicyId),
     "RequirementMet" : false
 }] {
+    PolicyId := "MS.EXO.10.3v1"
     true
 }
 #--
 
-
-#################
-# Baseline 2.11 #
-#################
-
 #
-# Baseline 2.11: Policy 1
+# MS.EXO.11.1v1
 #--
 # At this time we are unable to test because settings are configured in M365 Defender or using a third-party app
 tests[{
-    "Requirement" : "Impersonation protection checks SHOULD be used",
-    "Control" : "EXO 2.11",
+    "PolicyId" : PolicyId,
     "Criticality" : "Should/3rd Party",
     "Commandlet" : [],
     "ActualValue" : [],
-    "ReportDetails" : "Custom implementation allowed. If you are using Defender to fulfill this requirement, run the Defender version of this script. Otherwise, use a 3rd party tool OR manually check",
+    "ReportDetails" : DefenderMirrorDetails(PolicyId),
     "RequirementMet" : false
 }] {
+    PolicyId := "MS.EXO.11.1v1"
     true
 }
 #--
 
 #
-# Baseline 2.11: Policy 2
+# MS.EXO.11.2v1
 #--
 # At this time we are unable to test because settings are configured in M365 Defender or using a third-party app
 tests[{
-    "Requirement" : "User warnings, comparable to the user safety tips included with EOP, SHOULD be displayed",
-    "Control" : "EXO 2.11",
+    "PolicyId" : PolicyId,
     "Criticality" : "Should/3rd Party",
     "Commandlet" : [],
     "ActualValue" : [],
-    "ReportDetails" : "Custom implementation allowed. If you are using Defender to fulfill this requirement, run the Defender version of this script. Otherwise, use a 3rd party tool OR manually check",
+    "ReportDetails" : DefenderMirrorDetails(PolicyId),
     "RequirementMet" : false
 }] {
+    PolicyId := "MS.EXO.11.2v1"
     true
 }
 #--
 
 #
-# Baseline 2.11: Policy 3
+# MS.EXO.11.3v1
 #--
 # At this time we are unable to test because settings are configured in M365 Defender or using a third-party app
 tests[{
-    "Requirement" : "The phishing protection solution SHOULD include an AI-based phishing detection tool comparable to EOP Mailbox Intelligence",
-    "Control" : "EXO 2.11",
+    "PolicyId" : PolicyId,
     "Criticality" : "Should/3rd Party",
     "Commandlet" : [],
     "ActualValue" : [],
-    "ReportDetails" : "Custom implementation allowed. If you are using Defender to fulfill this requirement, run the Defender version of this script. Otherwise, use a 3rd party tool OR manually check",
+    "ReportDetails" : DefenderMirrorDetails(PolicyId),
     "RequirementMet" : false
 }] {
+    PolicyId := "MS.EXO.11.3v1"
     true
 }
 #--
 
-
-#################
-# Baseline 2.12 #
-#################
-
 #
-# Baseline 2.12: Policy 1
+# MS.EXO.12.1v1
 #--
 
 ConnFiltersWithIPAllowList[ConnFilter.Name] {
@@ -563,21 +505,21 @@ ConnFiltersWithIPAllowList[ConnFilter.Name] {
 }
 
 tests[{
-    "Requirement" : "IP allow lists SHOULD NOT be created",
-    "Control" : "EXO 2.12",
+    "PolicyId" : "MS.EXO.12.1v1",
     "Criticality" : "Should",
     "Commandlet" : ["Get-HostedConnectionFilterPolicy"],
     "ActualValue" : input.conn_filter,
     "ReportDetails" : ReportDetailsString(Status, ErrorMessage),
     "RequirementMet" : Status
 }]{
-    ErrorMessage := "Allow-list is in use"
-    Status := count(ConnFiltersWithIPAllowList) == 0
+    ConnFilterPolicies := ConnFiltersWithIPAllowList
+    ErrorMessage := Description(Format(ConnFilterPolicies), "connection filter polic(ies) with an IP allowlist:", concat(", ", ConnFilterPolicies))
+    Status := count(ConnFilterPolicies) == 0
 }
 #--
 
 #
-# Baseline 2.12: Policy 2
+# MS.EXO.12.2v1
 #--
 
 ConnFiltersWithSafeList[ConnFilter.Name] {
@@ -586,25 +528,21 @@ ConnFiltersWithSafeList[ConnFilter.Name] {
 }
 
 tests[{
-    "Requirement" : "Safe lists SHOULD NOT be enabled",
-    "Control" : "EXO 2.12",
+    "PolicyId" : "MS.EXO.12.2v1",
     "Criticality" : "Should",
     "Commandlet" : ["Get-HostedConnectionFilterPolicy"],
     "ActualValue" : input.conn_filter,
-    "ReportDetails" : ReportDetailsBoolean(Status),
+    "ReportDetails" : ReportDetailsString(Status, ErrorMessage),
     "RequirementMet" : Status
 }]{
-    Status := count(ConnFiltersWithSafeList) == 0
+    ConnFilterPolicies := ConnFiltersWithSafeList
+    ErrorMessage := Description(Format(ConnFilterPolicies), "connection filter polic(ies) with a safe list:", concat(", ", ConnFilterPolicies))
+    Status := count(ConnFilterPolicies) == 0
 }
 #--
 
-
-#################
-# Baseline 2.13 #
-#################
-
 #
-# Baseline 2.13: Policy 1
+# MS.EXO.13.1v1
 #--
 AuditEnabled[OrgConfig.Name] {
     OrgConfig := input.org_config[_]
@@ -612,8 +550,7 @@ AuditEnabled[OrgConfig.Name] {
 }
 
 tests[{
-    "Requirement" : "Mailbox auditing SHALL be enabled",
-    "Control" : "EXO 2.13",
+    "PolicyId" : "MS.EXO.13.1v1",
     "Criticality" : "Shall",
     "Commandlet" : ["Get-OrganizationConfig"],
     "ActualValue" : input.org_config,
@@ -624,209 +561,190 @@ tests[{
 }
 #--
 
-
-#################
-# Baseline 2.14 #
-#################
-
 #
-# Baseline 2.14: Policy 1
+# MS.EXO.14.1v1
 #--
 # At this time we are unable to test because settings are configured in M365 Defender or using a third-party app
 tests[{
-    "Requirement" : "A spam filter SHALL be enabled. The filtering solution selected SHOULD offer services comparable to the native spam filtering offered by Microsoft",
-    "Control" : "EXO 2.14",
+    "PolicyId" : PolicyId,
     "Criticality" : "Shall/3rd Party",
     "Commandlet" : [],
     "ActualValue" : [],
-    "ReportDetails" : "Custom implementation allowed. If you are using Defender to fulfill this requirement, run the Defender version of this script. Otherwise, use a 3rd party tool OR manually check",
+    "ReportDetails" : DefenderMirrorDetails(PolicyId),
     "RequirementMet" : false
 }] {
+    PolicyId := "MS.EXO.14.1v1"
     true
 }
 #--
 
 #
-# Baseline 2.14: Policy 2
+# MS.EXO.14.2v1
 #--
 # At this time we are unable to test because settings are configured in M365 Defender or using a third-party app
 tests[{
-    "Requirement" : "Spam and high confidence spam SHALL be moved to either the junk email folder or the quarantine folder",
-    "Control" : "EXO 2.14",
+    "PolicyId" : PolicyId,
     "Criticality" : "Shall/3rd Party",
     "Commandlet" : [],
     "ActualValue" : [],
-    "ReportDetails" : "Custom implementation allowed. If you are using Defender to fulfill this requirement, run the Defender version of this script. Otherwise, use a 3rd party tool OR manually check",
+    "ReportDetails" : DefenderMirrorDetails(PolicyId),
     "RequirementMet" : false
 }] {
+    PolicyId := "MS.EXO.14.2v1"
     true
 }
 #--
 
 #
-# Baseline 2.14: Policy 3
+# MS.EXO.14.3v1
 #--
 # At this time we are unable to test because settings are configured in M365 Defender or using a third-party app
 tests[{
-    "Requirement" : "Allowed senders MAY be added, but allowed domains SHALL NOT be added",
-    "Control" : "EXO 2.14",
+    "PolicyId" : PolicyId,
     "Criticality" : "Shall/3rd Party",
     "Commandlet" : [],
     "ActualValue" : [],
-    "ReportDetails" : "Custom implementation allowed. If you are using Defender to fulfill this requirement, run the Defender version of this script. Otherwise, use a 3rd party tool OR manually check",
+    "ReportDetails" : DefenderMirrorDetails(PolicyId),
     "RequirementMet" : false
 }] {
+    PolicyId := "MS.EXO.14.3v1"
     true
 }
 #--
 
-
-#################
-# Baseline 2.15 #
-#################
-
 #
-# Baseline 2.15: Policy 1
+# MS.EXO.15.1v1
 #--
 # At this time we are unable to test because settings are configured in M365 Defender or using a third-party app
 tests[{
-    "Requirement" : "URL comparison with a block-list SHOULD be enabled",
-    "Control" : "EXO 2.15",
+    "PolicyId" : PolicyId,
     "Criticality" : "Should/3rd Party",
     "Commandlet" : [],
     "ActualValue" : [],
-    "ReportDetails" : "Custom implementation allowed. If you are using Defender to fulfill this requirement, run the Defender version of this script. Otherwise, use a 3rd party tool OR manually check",
+    "ReportDetails" : DefenderMirrorDetails(PolicyId),
     "RequirementMet" : false
 }] {
+    PolicyId := "MS.EXO.15.1v1"
     true
 }
 #--
 
 #
-# Baseline 2.15: Policy 2
+# MS.EXO.15.2v1
 #--
 # At this time we are unable to test because settings are configured in M365 Defender or using a third-party app
 tests[{
-    "Requirement" : "Direct download links SHOULD be scanned for malware",
-    "Control" : "EXO 2.15",
+    "PolicyId" : PolicyId,
     "Criticality" : "Should/3rd Party",
     "Commandlet" : [],
     "ActualValue" : [],
-    "ReportDetails" : "Custom implementation allowed. If you are using Defender to fulfill this requirement, run the Defender version of this script. Otherwise, use a 3rd party tool OR manually check",
+    "ReportDetails" : DefenderMirrorDetails(PolicyId),
     "RequirementMet" : false
 }] {
+    PolicyId := "MS.EXO.15.2v1"
     true
 }
 #--
 
 #
-# Baseline 2.15: Policy 3
+# MS.EXO.15.3v1
 #--
 # At this time we are unable to test because settings are configured in M365 Defender or using a third-party app
 tests[{
-    "Requirement" : "User click tracking SHOULD be enabled",
-    "Control" : "EXO 2.15",
+    "PolicyId" : PolicyId,
     "Criticality" : "Should/3rd Party",
     "Commandlet" : [],
     "ActualValue" : [],
-    "ReportDetails" : "Custom implementation allowed. If you are using Defender to fulfill this requirement, run the Defender version of this script. Otherwise, use a 3rd party tool OR manually check",
+    "ReportDetails" : DefenderMirrorDetails(PolicyId),
     "RequirementMet" : false
 }] {
+    PolicyId := "MS.EXO.15.3v1"
     true
 }
 #--
 
-
-#################
-# Baseline 2.16 #
-#################
-
 #
-# Baseline 2.16: Policy 1
+# MS.EXO.16.1v1
 #--
 # At this time we are unable to test because settings are configured in M365 Defender or using a third-party app
 tests[{
-    "Requirement" : "At a minimum, the following alerts SHALL be enabled...[see Exchange Online secure baseline for list]",
-    "Control" : "EXO 2.16",
+    "PolicyId" : PolicyId,
     "Criticality" : "Shall/3rd Party",
     "Commandlet" : [],
     "ActualValue" : [],
-    "ReportDetails" : "Custom implementation allowed. If you are using Defender to fulfill this requirement, run the Defender version of this script. Otherwise, use a 3rd party tool OR manually check",
+    "ReportDetails" : DefenderMirrorDetails(PolicyId),
     "RequirementMet" : false
 }] {
+    PolicyId := "MS.EXO.16.1v1"
     true
 }
 #--
 
 #
-# Baseline 2.16: Policy 2
+# MS.EXO.16.2v1
 #--
 # At this time we are unable to test because settings are configured in M365 Defender or using a third-party app
 tests[{
-    "Requirement" : "The alerts SHOULD be sent to a monitored address or incorporated into a SIEM",
-    "Control" : "EXO 2.16",
+    "PolicyId" : PolicyId,
     "Criticality" : "Should/3rd Party",
     "Commandlet" : [],
     "ActualValue" : [],
-    "ReportDetails" : "Custom implementation allowed. If you are using Defender to fulfill this requirement, run the Defender version of this script. Otherwise, use a 3rd party tool OR manually check",
+    "ReportDetails" : DefenderMirrorDetails(PolicyId),
     "RequirementMet" : false
 }] {
-    true
-}
-#--
-
-
-#################
-# Baseline 2.17 #
-#################
-
-#
-# Baseline 2.17: Policy 1
-#--
-# At this time we are unable to test because settings are configured in M365 Defender or using a third-party app
-tests[{
-    "Requirement" : "Unified audit logging SHALL be enabled",
-    "Control" : "EXO 2.17",
-    "Criticality" : "Shall/3rd Party",
-    "Commandlet" : [],
-    "ActualValue" : [],
-    "ReportDetails" : "Custom implementation allowed. If you are using Defender to fulfill this requirement, run the Defender version of this script. Otherwise, use a 3rd party tool OR manually check",
-    "RequirementMet" : false
-}] {
+    PolicyId := "MS.EXO.16.2v1"
     true
 }
 #--
 
 #
-# Baseline 2.17: Policy 2
+# MS.EXO.17.1v1
 #--
 # At this time we are unable to test because settings are configured in M365 Defender or using a third-party app
 tests[{
-    "Requirement" : "Advanced audit SHALL be enabled",
-    "Control" : "EXO 2.17",
+    "PolicyId" : PolicyId,
     "Criticality" : "Shall/3rd Party",
     "Commandlet" : [],
     "ActualValue" : [],
-    "ReportDetails" : "Custom implementation allowed. If you are using Defender to fulfill this requirement, run the Defender version of this script. Otherwise, use a 3rd party tool OR manually check",
+    "ReportDetails" : DefenderMirrorDetails(PolicyId),
     "RequirementMet" : false
 }] {
+    PolicyId := "MS.EXO.17.1v1"
+    true
+
+}
+#--
+
+#
+# MS.EXO.17.2v1
+#--
+# At this time we are unable to test because settings are configured in M365 Defender or using a third-party app
+tests[{
+    "PolicyId" : PolicyId,
+    "Criticality" : "Shall/3rd Party",
+    "Commandlet" : [],
+    "ActualValue" : [],
+    "ReportDetails" : DefenderMirrorDetails(PolicyId),
+    "RequirementMet" : false
+}] {
+    PolicyId := "MS.EXO.17.2v1"
     true
 }
 #--
 
 #
-# Baseline 2.17: Policy 3
+# MS.EXO.17.3v1
 #--
 # At this time we are unable to test because settings are configured in M365 Defender or using a third-party app
 tests[{
-    "Requirement" : "Audit logs SHALL be maintained for at least the minimum duration dictated by OMB M-21-31",
-    "Control" : "EXO 2.17",
+    "PolicyId" : PolicyId,
     "Criticality" : "Shall/3rd Party",
     "Commandlet" : [],
     "ActualValue" : [],
-    "ReportDetails" : "Custom implementation allowed. If you are using Defender to fulfill this requirement, run the Defender version of this script. Otherwise, use a 3rd party tool OR manually check",
+    "ReportDetails" : DefenderMirrorDetails(PolicyId),
     "RequirementMet" : false
 }] {
+    PolicyId := "MS.EXO.17.3v1"
     true
 }
 #--

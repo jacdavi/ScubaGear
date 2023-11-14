@@ -8,7 +8,7 @@ Developed by CISA, this assessment tool verifies that an M365 tenant’s configu
 This tool was tested against tenants that have an M365 E3 or G3 and E5 or G5 license bundle. It may still function for tenants that do not have one of these bundles.
 
 Some of the policy checks in the baseline rely on the following licenses which are included by default in M365 E5 and G5.
-- Azure AD Premium Plan 2
+- Microsoft Entra ID P2
 - Microsoft Defender for Office 365 Plan 1
 
 If a tenant does not have the licenses listed above, the report will display a non-compliant output for those policies.
@@ -20,13 +20,13 @@ If a tenant does not have the licenses listed above, the report will display a n
 To download ScubaGear:
 
 1. Click [here](https://github.com/cisagov/ScubaGear/releases/latest) to see the latest release.
-2. Click `ScubaGear-v0-2-0.zip` (or latest version) to download the release.
+2. Click `ScubaGear-v1-0-0.zip` (or latest version) to download the release.
 3. Extract the folder in the zip file.
 
 ### Installing the required PowerShell Modules
 > **Note**: Only PowerShell 5.1 is currently supported. PowerShell 7 may work, but has not been tested. PowerShell 7 will be added in a future release.
 
-To import the module, open a new PowerShell 5.1 terminal and navigate to the repository folder. 
+To import the module, open a new PowerShell 5.1 terminal and navigate to the repository folder.
 
 Then run:
 
@@ -38,8 +38,8 @@ Import-Module -Name .\PowerShell\ScubaGear #Imports the tool into your session
 > **Note**: OPA executable download script is called by default when running SetUp.ps1. OPA.ps1 can also be run by itself to download the executable.
 In the event of an unsuccessful download, users can manually download the OPA executable with the following steps:
 1. Go to OPA download site (https://www.openpolicyagent.org/docs/latest/#running-opa)
-2. Check the acceptable OPA version (Currently v0.42.1) for Scuba and select the corresponding version on top left of the website 
-3. Navigate to the menu on left side of the screen: Introduction - Running OPA - Download OPA 
+2. Check the acceptable OPA version (Currently v0.42.1) for Scuba and select the corresponding version on top left of the website
+3. Navigate to the menu on left side of the screen: Introduction - Running OPA - Download OPA
 4. Locate the downloaded file, add the file to the root directory of this repository, open PowerShell, and use the following command to check the downloaded OPA version
 ```powershell
 .\opa_windows_amd64.exe version
@@ -61,7 +61,7 @@ Invoke-SCuBA -ProductNames aad -OutPath C:\Users\johndoe\reports
 ```
 ### Example 3: Run assessments against multiple products
 ```powershell
-Invoke-SCuBA -ProductNames aad, spo, teams
+Invoke-SCuBA -ProductNames aad, sharepoint, teams
 ```
 ### Example 4: Run assessments non-interactively using an application service principal and authenticating via CertificateThumbprint
 ```powershell
@@ -75,15 +75,23 @@ Get-Help -Name Invoke-SCuBA -Full
 
 ### Parameter Definitions
 
+- **$ConfigFilePath** is an optional parameter that refers to the path to a configuration file that the tool parses for input parameters when executing ScubaGear. ScubaGear supports either a YAML or JSON formatted configuration file. A sample configuration file is included in [sample-config-files/aad-config.yaml](./sample-config-files/aad-config.yaml). The syntax defines:
+  - Use of Pascal case convention for variable names consistent with parameters on the command line
+  - A global namespace for values to be used across baselines and products (i.e., GlobalVars)
+  - Per product namespace for values related to that specific product (i.e., Aad, SharePoint)
+  - Namespace for each policy item within a product for variables related only to one policy item (i.e., MS.AAD.2.1v1)
+  - Use of YAML anchors and aliases following Don't Repeat Yourself (DRY) principle for repeated values and sections
+
+  When using the configuration file option, all non-default parameters must be specified in the file. ScubaGear does not allow other command line options with `-ConfigFilePath`. The file path defaults to the same directory where the script is executed. The file path must point to a valid configuration file. It can be either a relative or absolute path. The file can be used to specify both standard tool parameters as well as custom parameters used by the Azure Active Directory (AAD) product assessment. See [AAD Conditional Access Policy Exemptions](#aad-conditional-access-policy-exemptions) for more details.
+
 - **$LogIn** is a `$true` or `$false` variable that if set to `$true` will prompt the user to provide credentials to establish a connection to the specified M365 products in the **$ProductNames** variable. For most use cases, leave this variable to be `$true`. A connection is established in the current PowerShell terminal session with the first authentication. To run another verification in the same PowerShell session,  set this variable to be `$false` to bypass the need to authenticate again in the same session. Note: defender will ask for authentication even if this variable is set to `$false`
 
 - **$ProductNames** is a list of one ore more M365 shortened product names that the tool will assess when it is executed. Acceptable product name values are listed below. To assess Azure Active Directory you would enter the value **aad**. To assess Exchange Online you would enter **exo** and so forth.
   - Azure Active Directory: **aad**
   - Defender for Office 365: **defender**
   - Exchange Online: **exo**
-  - OneDrive: **onedrive**
   - Power Platform: **powerplatform**
-  - SharePoint Online: **sharepoint**
+  - SharePoint Online and OneDrive for Business: **sharepoint**
   - Teams: **teams**
 
 - **$M365Environment** parameter is used to authenticate to the various M365 commercial/ government environments. Valid values include `commercial`, `gcc`, `gcchigh`, or `dod`.     Default value is `commercial`.
@@ -119,7 +127,6 @@ The minimum user roles needed for each product are described in the table below.
 | Defender for Office 365 |  Global Reader (or Exchange Administrator)                                                             |
 | Power Platform          |  Power Platform Administrator and a "Power Apps for Office 365" license             |
 | Sharepoint Online       |  SharePoint Administrator                                                           |
-| OneDrive                |  SharePoint Administrator                                                           |
 
 - **Note**: Users with the Global Administrator role always have the necessary user permissions to run the tool.
 
@@ -142,39 +149,81 @@ The following API permissions are required for Microsoft Graph Powershell:
 - Policy.Read.All
 - RoleManagement.Read.Directory
 - User.Read.All
-- UserAuthenticationMethod.Read.All
 
+### Service Principal Application Permissions & Setup
+The minimum API permissions & user roles for each product that need to be assigned to a service principal application for ScubaGear app-only authentication are listed in the table below.
 
-### Application Service Principal Permissions & Setup
-Below are the permissions for running the tool non-interactively. The minimum API permissions for all products are listed in the image below. The minimum user role permissions that need to be granted to the application are listed in the *Assign the following Azure AD roles to the service principal* subsection.
+| Product                  | API Permissions                                      | Azure AD Roles                   |
+|--------------------------|------------------------------------------------------|----------------------------------|
+| Azure Active Directory   | Directory.Read.All, GroupMember.Read.All,            |                                  |
+|                          | Organization.Read.All, Policy.Read.All,              |                                  |
+|                          | RoleManagement.Read.Directory, User.Read.All,        |                                  |
+|                          |                    |                                  |
+| Defender for Office 365  | Exchange.ManageAsApp                                 | Global Reader                    |
+| Exchange Online          | Exchange.ManageAsApp                                 | Global Reader                    |
+| Power Platform           | [See Power Platform App Registration](#power-platform-app-registration)                                                |                                  |
+| SharePoint Online        | Sites.FullControl.All, Directory.Read.All            |                                  |
+| Microsoft Teams          |                                                      | Global Reader                    |
 
-This [video](https://www.youtube.com/watch?v=GyF8HV_35GA) provides a good tutorial for creating an application manually in the Azure Portal. Augment the API permissions and replace the role assignment instructions in the video with the permissions listed below.
+This [video](https://www.youtube.com/watch?v=GyF8HV_35GA) provides a good tutorial for creating an application manually in the Azure Portal. Augment the API permissions and replace the role assignment instructions in the video with the permissions listed above.
 
-
-**API Permissions**
-![ScubaGear App Service Principal API Permissions](/images/appserviceprincipal-api-permssions.png)
-
-
-**Power Platform**
-
-For Power Platform, the application must be [manually registered to Power Platform via interactive authentication](https://learn.microsoft.com/en-us/power-platform/admin/powershell-create-service-principal#registering-an-admin-management-application).
+#### Power Platform App Registration
+For Power Platform, the application must be [manually registered to Power Platform via interactive authentication](https://learn.microsoft.com/en-us/power-platform/admin/powershell-create-service-principal#registering-an-admin-management-application) with a administrative account. See [Limitations of Service Principals](https://learn.microsoft.com/en-us/power-platform/admin/powershell-create-service-principal#limitations-of-service-principals) for how applications are treated within Power Platform.
 ```powershell
 Add-PowerAppsAccount -Endpoint prod -TenantID $tenantId # use -Endpoint usgov for gcc tenants
-New-PowerAppManagementApp -ApplicationId $appId # Must be run from a Power Platform Adminstrator or Global Adminstrator account
+New-PowerAppManagementApp -ApplicationId $appId # Must be run from a Power Platform Administrator or Global Administrator account
 ```
 
-
-**Assign the following Azure AD roles to the service principal**
-- SharePoint Administrator
-- Global Reader
-
-
 **Certificate store notes**
-- Power Platform has a [hardcoded expectation](https://github.com/microsoft/Microsoft365DSC/issues/2781) that the certificate is located in "Cert:\CurrentUser\My".
-- MS Graph seems to also have an expectation that the certificate at least be located in one of the local client's certificate store(s).
+- Power Platform has a [hardcoded expectation](https://github.com/microsoft/Microsoft365DSC/issues/2781) that the certificate is located in `Cert:\CurrentUser\My`.
+- MS Graph has an expectation that the certificate at least be located in one of the local client's certificate store(s).
 
 > **Notes**: Only authentication via `CertificateThumbprint` is currently supported. We will also be supporting automated app registration in a later release.
 
+### AAD Conditional Access Policy Exemptions
+The ScubaGear ConfigFilePath command line option allows users to define custom variables for use in policy assessments against the AAD baseline.  These custom variables are used to exempt specific user and group exclusions from conditional access policy checks that normally would not pass if exclusions are present.  These parameters support operational use cases for having backup or break glass account exclusions to global user policies without failing best practices.  Any exemptions and their risks should be carefully considered and documented as part of an organization's cybersecurity risk management program process and practices.
+
+**YAML AAD Configuration File Syntax and Examples**
+
+**Aad** defines the AAD specific variables to specify user, group, and role exclusions that are documented exemptions to select conditional access policies (CAP) in the AAD configuration policy baselines. Users, groups, and roles are specified by their respective Universally Unique Identifier (UUID) in the tenant. This variable set is only needed if the agency has documented CAP exemptions.
+
+**CapExclusions** - Supports both a Users and Groups list with each entry representing the UUID of a user or group that is approved by the agency to be included in a conditional access policy assignment exclusion. Adding an entry to this variable will prevent ScubaGear from failing the policy assessment due to the presence of the users and groups in an exclusion.
+
+CapExclusions can be defined in the following policy namespaces:
+
+- MS.AAD.1.1v1
+- MS.AAD.2.1v1
+- MS.AAD.2.3v1
+- MS.AAD.3.2v1
+- MS.AAD.3.3v1
+- MS.AAD.3.7v1
+- MS.AAD.3.8v1
+
+**RoleExclusions** - Supports both a Users and Groups list with each entry representing the UUID of a user or group that is approved by the agency to be included in a role assignment. Adding an entry to this variable will prevent ScubaGear from failing the policy assessment due to the presence of a role assignment for those users and groups.
+
+RoleExclusions can be defined in the following policy namespaces:
+
+- MS.AAD.7.4v1
+
+The example below illustrates the syntax for defining user, group, and role exemptions to select policies.  The syntax allows the use of a YAML anchor and alias to simplify formatting policies having the same documented exemptions. Items surrounded by chevrons are to be supplied by the user.
+
+        Aad:
+          MS.AAD.1.1v1: &CommonExclusions
+            CapExclusions:
+              Users:
+                - <Exempted User 1 UUID>
+                - <Exempted User 2 UUID>
+              Groups:
+                - <Exempted Group 1 UUID>
+          MS.AAD.2.1v1:  *CommonExclusions
+          MS.AAD.2.3v1:  *CommonExclusions
+          MS.AAD.3.2v1:  *CommonExclusions
+          MS.AAD.7.4v1:
+            RoleExclusions:
+              Users:
+                - <Exempted User 3 UUID>
+              Groups:
+                - <Exempted Group 2 UUID>
 
 ## Architecture
 ![SCuBA Architecture diagram](/images/scuba-architecture.png)
@@ -196,9 +245,9 @@ Unless otherwise noted, this project is distributed under the Creative Commons Z
 ## Troubleshooting
 
 ### Executing against multiple tenants
-ScubaGear creates connections to several M365 services. If running against multiple tenants, it is necessary to disconnect those sessions. 
+ScubaGear creates connections to several M365 services. If running against multiple tenants, it is necessary to disconnect those sessions.
 
-`Invoke-SCuBA` includes the `-DisconnectOnExit` parameter to disconnect each of connection upon exit.  To disconnect sessions after a run, use `Disconnect-SCuBATenant`.  The cmdlet disconnects from Azure Active Directory (via MS Graph API), Defender, Exchange Online, OneDrive, Power Platform, SharePoint Online, and Microsoft Teams.
+`Invoke-SCuBA` includes the `-DisconnectOnExit` parameter to disconnect each of connection upon exit.  To disconnect sessions after a run, use `Disconnect-SCuBATenant`.  The cmdlet disconnects from Azure Active Directory (via MS Graph API), Defender, Exchange Online, Power Platform, SharePoint Online, and Microsoft Teams.
 
 ```PowerShell
 Disconnect-SCuBATenant
@@ -216,10 +265,7 @@ https://docs.microsoft.com/en-us/powershell/exchange/exchange-online-powershell-
 Create Powershell Session is failed using OAuth
 ```
 
-If you see this error message it means that basic authentication needs to be enabled on the client computer running the automation scripts. The automation relies on the Microsoft Security & Compliance PowerShell environment for Defender information. Security & Compliance PowerShell connections, unlike other services used by the ExchangeOnlineManagement module, currently [require](https://learn.microsoft.com/en-us/powershell/exchange/exchange-online-powershell-v2?view=exchange-ps#updates-for-version-300-the-exo-v3-module) basic authentication to be enabled on the local machine. Basic authentication is required because the ExchangeOnlineManagement module connects to Security & Compliance PowerShell using Remote PowerShell, which only supports basic authentication. Even in this case, your password is NOT sent to the remote server. When running the tool against M365 products other than Defender, basic authentication need not be enabled on the client computer. Note that these instructions are only about the behavior of the client computer running the tool. In particular, basic authentication should still be disabled using conditional access per the Azure Active Directory baseline instructions.
-
-Enabling basic authentication instructions are [here](https://docs.microsoft.com/en-us/powershell/exchange/basic-auth-connect-to-exo-powershell?view=exchange-ps).
-We provide a convenience script named `.\AllowBasicAuthentication.ps1`, in the root project folder, to enable basic authentication. The script must be run from a PowerShell "Run as administrator" window and it updates a registry key. Depending on how your client computer is configured you may have to re-enable basic authentication each time you restart your computer or after it completes a group policy update.
+If you see this error message it means that basic authentication needs to be enabled on the client computer running the automation scripts. The automation relies on the Microsoft Security & Compliance PowerShell environment for Defender information. Security & Compliance PowerShell connections, unlike other services used by the ExchangeOnlineManagement module, required basic authentication to be enabled on the local machine for versions of ExchangeOnlineManagement prior to Version 3. As of June 2023, Microsoft has [deprecated Remote PowerShell for Exchange Online and Security & Compliance PowerShell](https://techcommunity.microsoft.com/t5/exchange-team-blog/announcing-deprecation-of-remote-powershell-rps-protocol-in/ba-p/3695597). To resolve this error, you should run the .\SetUp.ps1 script to install the latest compatible ExchangeOnlineManagement module.
 
 ### Exchange Online maximum connections error
 If when running the tool against Exchange Online, you see the error below in the Powershell window, follow the instructions in this section.
@@ -333,5 +379,3 @@ ScubaGear requires a number of PowerShell modules to function.  A user or develo
 On Windows Servers, the default [execution policy](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.security/set-executionpolicy?view=powershell-5.1) is `RemoteSigned`, which will allow ScubaGear to run after the publisher (CISA) is agreed to once.
 
 On Windows Clients, the default execution policy is `Restricted`.  In this case, `Set-ExecutionPolicy RemoteSigned` should be invoked to permit ScubaGear to run.
-
-In ScubaGear version 0.2.1 and earlier, running `Unblock-File` on the ScubaGear folder may be required. See [here](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/unblock-file?view=powershell-5.1) for more information.  

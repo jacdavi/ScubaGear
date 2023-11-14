@@ -1,280 +1,324 @@
-# 1. Introduction
+# CISA M365 Security Configuration Baseline for SharePoint Online and OneDrive
 
-SharePoint Online is a web-based collaboration and document management
-platform. Though highly flexible, it is primarily used to store
-documents and communicate information across organizations.
-Organizations can create sites, pages, document libraries, lists and
-custom applications.
+SharePoint Online is a web-based collaboration and document management platform. It is primarily used to collaborate on documents and communicate information in project teams. OneDrive is a cloud-based file storage system primarily used to store a user's personal files but it can also be used to share documents with others. This Secure Configuration Baseline (SCB) provides specific policies to strengthen the security of both of these services.
 
-In this baseline, the types of SharePoint Online users are defined as
-follows (Note: these terms vary in use across Microsoft documentation
-and within the context of different M365 workloads (e.g., Teams vs
-SharePoint Online):
+The Secure Cloud Business Applications (SCuBA) project run by the Cybersecurity and Infrastructure Security Agency (CISA) provides guidance and capabilities to secure federal civilian executive branch (FCEB) agencies’ cloud business application environments and protect federal information that is created, accessed, shared, and stored in those environments. 
 
-1.  **Internal users**: members of the agency’s M365 organization.
+The CISA SCuBA SCBs for M365 help secure federal information assets stored within M365 cloud business application environments through consistent, effective, and manageable security configurations. CISA created baselines tailored to the federal government’s threats and risk tolerance with the knowledge that every organization has different threat models and risk tolerance. Non-governmental organizations may also find value in applying these baselines to reduce risks.
 
-2.  **External users**: members of a different M365 organization.
+The information in this document is being provided “as is” for INFORMATIONAL PURPOSES ONLY. CISA does not endorse any commercial product or service, including any subjects of analysis. Any reference to specific commercial entities or commercial products, processes, or services by service mark, trademark, manufacturer, or otherwise, does not constitute or imply endorsement, recommendation, or favoritism by CISA.
 
-3.  **Business to Business (B2B) guest users**: external users that are
-    formally invited to collaborate and added to the agency’s Azure
-    Active Directory (AAD) as guest users. These users authenticate with
-    their home organization/tenant and are granted access by virtue of
-    being listed as guest users on the tenant’s AAD.
+## License Compliance and Copyright
 
-4.  **Unmanaged users**: users that are not members of any M365 tenant
-    or organization (e.g., recipients of an “Anyone link.”)
+Portions of this document are adapted from documents in Microsoft’s [Microsoft 365](https://github.com/MicrosoftDocs/microsoft-365-docs/blob/public/LICENSE) and [Azure](https://github.com/MicrosoftDocs/azure-docs/blob/main/LICENSE) GitHub repositories. The respective documents are subject to copyright and are adapted under the terms of the Creative Commons Attribution 4.0 International license. Source documents are linked throughout this document. The United States Government has adapted selections of these documents to develop innovative and scalable configuration standards to strengthen the security of widely used cloud-based software services.
 
-    External sharing within SharePoint Online is defined as users within
-    an organization sharing content with people outside the organization
-    (external users, B2B guest users, or unmanaged users), or with
-    licensed users on multiple Microsoft 365 subscriptions if the agency
-    has more than one subscription. SharePoint has external sharing
-    settings at both the organizational level and the site level
-    (previously called the "site collection" level). To allow external
-    sharing on any site, it must be allowed at the organization level.
-    Then external sharing can be restricted for other sites. If a site's
-    external sharing option and the organization-level sharing option
-    don't match, the most restrictive value will always be applied.
+## Assumptions
+The **License Requirements** sections of this document assume the organization is using an [M365 E3](https://www.microsoft.com/en-us/microsoft-365/compare-microsoft-365-enterprise-plans) or [G3](https://www.microsoft.com/en-us/microsoft-365/government) license level at a minimum. Therefore, only licenses not included in E3/G3 are listed.
 
-    Source:
-    <https://docs.microsoft.com/en-us/sharepoint/external-sharing-overview>
+## Key Terminology
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in [RFC 2119](https://datatracker.ietf.org/doc/html/rfc2119).
 
-## 1.1 Resources
+# Baseline Policies
 
-**<u>License Compliance and Copyright</u>**
+## 1. External Sharing
 
-Portions of this document are adapted from documents in Microsoft’s
-[Microsoft
-365](https://github.com/MicrosoftDocs/microsoft-365-docs/blob/public/LICENSE)
-and
-[Azure](https://github.com/MicrosoftDocs/azure-docs/blob/main/LICENSE)
-GitHub repositories. The respective documents are subject to copyright
-and are adapted under the terms of the Creative Commons Attribution 4.0
-International license. Source documents are linked throughout this
-document. The United States Government has adapted selections of these
-documents to develop innovative and scalable configuration standards to
-strengthen the security of widely used cloud-based software services.
+This section helps reduce security risks related to sharing files with users external to the agency. This includes guest users, users who use a verification code, and users who access an Anyone link.
 
-## 1.2 Assumptions
 
-The **License Requirements** sections of this document assume the
-organization is using an [M365
-E3](https://www.microsoft.com/en-us/microsoft-365/compare-microsoft-365-enterprise-plans)
-or [G3](https://www.microsoft.com/en-us/microsoft-365/government)
-license level. Therefore, only licenses not included in E3/G3 are
-listed.
+### Policies
+#### MS.SHAREPOINT.1.1v1
+External sharing for SharePoint SHALL be limited to Existing Guests or Only People in your Organization.
 
-# 2. Baselines
+<!--Policy: MS.SHAREPOINT.1.1v1; Criticality: SHALL -->
+- _Rationale:_ Sharing information outside the organization via SharePoint increases the risk of unauthorized access. By limiting external sharing, administrators decrease the risk of access to information.
+- _Last modified:_ June 2023
 
-## 2.1 File and Folder Links Default Sharing Settings SHALL Be Set to "Specific People (Only the People the User Specifies)"
+#### MS.SHAREPOINT.1.2v1
+External sharing for OneDrive SHALL be limited to Existing Guests or Only People in your Organization.
 
-This policy ensures that when sharing files in SharePoint, there are
-several possible scopes, including agency-wide or “anyone with the
-link.”
+<!--Policy: MS.SHAREPOINT.1.2v1; Criticality: SHALL -->
+- _Rationale:_ Sharing files outside the organization via OneDrive increases the risk of unauthorized access. By limiting external sharing, administrators decrease the risk of unauthorized unauthorized access to information.
+- _Last modified:_ June 2023
 
-### 2.1.1 Policy
+#### MS.SHAREPOINT.1.3v1
+External sharing SHALL be restricted to approved external domains and/or users in approved security groups per interagency collaboration needs. 
 
-- File and folder links default sharing setting SHALL be set to
-  “Specific People (Only the People the User Specifies)”.
+<!--Policy: MS.SHAREPOINT.1.3v1; Criticality: SHALL -->
+- _Rationale:_ By limiting sharing to domains or approved security groups used for interagency collaboration purposes, administrators prevent sharing with unknown organizations and individuals.
+- _Last modified:_ June 2023
+- _Note:_ This policy is only applicable if the external sharing slider on the admin page is set to any value other than Only People in your Organization.
 
-### 2.1.2 Resources
+#### MS.SHAREPOINT.1.4v1
+Guest access SHALL be limited to the email the invitation was sent to.
 
-- [File and folder links \| Microsoft
-  Documents](https://docs.microsoft.com/en-us/sharepoint/turn-external-sharing-on-or-off#file-and-folder-links)
+<!--Policy: MS.SHAREPOINT.1.4v1; Criticality: SHALL -->
+- _Rationale:_ Email invitations allow external guests to access shared information. By requiring guests to sign in using the same account where the invite was sent, administrators ensure only the intended guest can use the invite.
+- _Last modified:_ June 2023
+- _Note:_ This policy is only applicable if the external sharing slider on the admin page is set to any value other than Only People in your Organization.
 
-### 2.1.3 License Requirements
+### Resources
+
+- [Overview of external sharing in SharePoint and OneDrive in Microsoft 365 \| Microsoft Documents](https://learn.microsoft.com/en-us/sharepoint/external-sharing-overview)
+
+- [Manage sharing settings for SharePoint and OneDrive in Microsoft 365 \| Microsoft Documents](https://learn.microsoft.com/en-us/sharepoint/turn-external-sharing-on-or-off)
+
+### License Requirements
 
 - N/A
 
-### 2.1.4 Implementation
+### Implementation
 
-In the **SharePoint admin** **center**:
+#### MS.SHAREPOINT.1.1v1 instructions:
 
-1.  In the left-hand navigation bar, click **Policies** -\> **Sharing**
-    to display sharing settings.
+1. Sign in to the **SharePoint admin center**.
 
-2.  Under **File and folder links**, ensure that the default link type
-    is set to **Specific people (only the people the user specifies)**.
+2.  Select **Policies** \> **Sharing**.
 
-## 2.2 External Sharing SHOULD be Set to “New and Existing Guests” and Managed Through Approved Domains and/or Security Groups Per Interagency Collaboration Needs.
+3.  Adjust external sharing slider for SharePoint to **Existing Guests** or **Only people in your organization**.
 
-SharePoint allows sharing with users who are outside the agency, which
-is convenient but may pose a data loss or other information security
-risk. This working group recommends allowlisting by domains and security
-groups per interagency collaboration needs.
+4. Select **Save**.
 
-**Note**: Adjusting this setting will adjust external sharing
-for OneDrive and Teams to the same, selected level. OneDrive and Teams
-can be less permissive (not more permissive) than SharePoint Online.
+#### MS.SHAREPOINT.1.2v1 instructions:
 
-Adding approved domains and/or security groups will also be reflected in
-OneDrive external sharing settings.
 
-External access may be granted on a per-domain basis. This may be
-desirable in some cases, e.g., for agency-to-agency collaboration (see
-the CIO Council's [Interagency Collaboration
-Program](https://community.max.gov/display/Egov/Interagency+Collaboration+Program)’s
-OMB Max Site for a list of .gov domains for sharing).
+1.  Sign in to the **SharePoint admin center**.
 
-### 2.2.1 Policy
+2.  Select **Policies** \> **Sharing**.
 
-- External sharing SHOULD be limited to approved domains and security
-  groups per interagency collaboration needs.
+3.  Adjust external sharing slider for OneDrive to **Existing Guests** or **Only people in your organization**.
 
-### 2.2.2 Resources
+4. Select **Save**.
 
-- [Manage sharing settings \| Microsoft
-  Documents](https://docs.microsoft.com/en-us/sharepoint/turn-external-sharing-on-or-off)
+#### MS.SHAREPOINT.1.3v1 instructions:
 
-### 2.2.3 License Requirements
+Note: If SharePoint external sharing is set to its most restrictive setting of "Only people in your organization", then no external sharing is allowed and no implementation changes are required for this policy item.
 
-- N/A
+1.  Sign in to the **SharePoint admin center**.
 
-### 2.2.4 Implementation 
+2.  Select **Policies** \> **Sharing**.
 
-To adjust sharing settings, in the **SharePoint admin center**:
-
-1.  Select **Policies** -\> **Sharing**.
-
-2.  Adjust external sharing slider to **New and Existing Guests.**
-
-3.  Expand **More external sharing settings.**
+3.  Expand **More external sharing settings**.
 
 4.  Select **Limit external sharing by domain**.
 
-5.  Select **Add domains.**
+5.  Select **Add domains**.
 
-6.  Add domains.
+6.  Add each approved external domain users are allowed to share files with.
 
-7.  Select **Save.**
+7.  Select **Manage security groups**
 
-8.  Select **Allow only users in specific security groups to share
-    externally**.
+8. Add each approved security group - members of these groups will be allowed to share files externally
 
-9.  Select **Manage security groups.**
+9.  Select **Save**.
 
-10. Add security groups.
+#### MS.SHAREPOINT.1.4v1 instructions:
 
-11. Select **Save.**
+Note: If SharePoint external sharing is set to its most restrictive setting of "Only people in your organization", then no external sharing is allowed and no implementation changes are required for this policy item.
 
-## 2.3 Sensitive SharePoint Sites SHOULD Adjust Their Default Sharing Settings to Those Best Aligning to Their Sensitivity Level 
+1.  Sign in to the **SharePoint admin center**.
 
-SharePoint allows sharing with users who are outside the agency, which
-is convenient but may pose a data loss or other information security
-risk. This working group recommends outside of the default
-organizational settings agencies should evaluate each created site and
-adjust sharing settings best aligned to their respective sensitivity
-level.
+2.  Select **Policies** \> **Sharing**.
 
-### 2.3.1 Policy
+3.  Expand **More external sharing settings**.
 
-- Sharing settings for specific SharePoint sites SHOULD align to their
-  sensitivity level.
+4. Select **Guests must sign in using the same account to which sharing invitations are sent**.
 
-### 2.3.2 Resources
+5. Select **Save**.
 
-- [Managing SharePoint Online Security: A Team Effort \| Microsoft
-  Build](https://docs.microsoft.com/en-us/microsoft-365/community/sharepoint-security-a-team-effort)
+## 2. File and Folder Default Sharing Settings
 
-### 2.3.3 License Requirements
+This section provides policies to set the scope and permissions for sharing links to secure default values.
 
-- N/A
+### Policies
 
-### 2.3.4 Implementation 
+#### MS.SHAREPOINT.2.1v1
+File and folder default sharing scope SHALL be set to Specific People (only the people the user specifies).
 
-To limit external sharing by domain, in the **SharePoint admin center**:
+<!--Policy: MS.SHAREPOINT.2.1v1; Criticality: SHALL -->
+- _Rationale:_ By making the default sharing the most restrictive, administrators prevent accidentally sharing information too broadly.
+- _Last modified:_ June 2023
 
-1.  Select **Sites.**
+#### MS.SHAREPOINT.2.2v1
+File and folder default sharing permissions SHALL be set to View only.
 
-2.  Select **Active sites.**
+<!--Policy: MS.SHAREPOINT.2.2v1; Criticality: SHALL -->
+- _Rationale:_ Edit access to files and folders could allow a user to make unauthorized changes.  By restricting default permissions to View only, administrators prevent unintended or malicious modification.
+- _Last modified:_ June 2023
 
-3.  Select **Site name.**
+### Resources
 
-4.  Select **Add domains.**
+- [File and folder links \| Microsoft
+  Documents](https://learn.microsoft.com/en-us/sharepoint/turn-external-sharing-on-or-off#file-and-folder-links)
 
-5.  Select **Policies.**
-
-6.  Under **external sharing**, select **Edit**.
-
-7.  Select permissions aligning to the risk posture associated with the
-    sensitivity of the SharePoint site.
-
-8.  Select **Save.**
-
-## 2.4 Expiration Times for Guest Access to a Site or OneDrive, and Reauthentication Expiration Times for People Who Use a Verification Code, SHOULD Be Determined By Mission Needs / Agency Policy or Else Defaulted to 30 Days.
-
-SharePoint allows sharing with users who are outside the agency, which
-is convenient but may pose a data loss or other information security
-risk. This working group recommends setting an expiration time for guest
-access to the site or OneDrive.
-
-**Note**: Adjusting this setting will adjust external sharing
-for OneDrive and Teams to the same, specified expiration times.
-
-### 2.4.1 Policy
-
-- Expiration timers for ‘guest access to a site or OneDrive’ and ‘people
-  who use a verification code’ SHOULD be set.
-
-- Expiration timers SHOULD be set to 30 days.
-
-### 2.4.2 License Requirements
+### License Requirements
 
 - N/A
 
-### 2.4.3 Resources
+### Implementation
 
-- [Managing SharePoint Online Security: A Team Effort \| Microsoft
-  Build](https://docs.microsoft.com/en-us/microsoft-365/community/sharepoint-security-a-team-effort)
+#### MS.SHAREPOINT.2.1v1 instructions:
 
-### 2.4.4 Implementation 
+1.  Sign in to the **SharePoint admin center**.
 
-To limit external sharing by domain, in the **SharePoint admin center**:
+2.  Select **Policies** \> **Sharing**
 
-1.  Select **Policies** -\> **Sharing**.
+3.  Under **File and folder links**, set the default link type to **Specific people (only the people the user specifies)**
 
-2.  Expand **More external sharing settings.**
+4.  Select **Save**
 
-3.  Select **Guest access to a site or OneDrive will expire
-    automatically after this many days.**
+#### MS.SHAREPOINT.2.2v1 instructions:
 
-4.  Enter “30” days.
+1.  Sign in to the **SharePoint admin center**.
 
-5.  Select **People who use a verification code must reauthenticate
-    after this many days**.
+2. Select **Policies** \> **Sharing**.
 
-6.  Enter “30 days”.
+3. Under **File and folder links**, set the permission that's selected by default for sharing links to **View**.
 
-## 2.5 Users SHALL Be Prevented from Running Custom Scripts
+4. Select **Save**.
 
-Allowing users to run custom scripts can potentially allow malicious
-scripts to run in a trusted environment. For this reason, running custom
-scripts should not be allowed.
+## 3. Securing Anyone Links and Verification Code Users
 
-### 2.5.1 Policy
+Sharing files with external users via the usage of Anyone links or Verification codes is strongly discouraged because it provides access to data within a tenant with weak or no authentication. If these features are used, this section provides some access restrictions that could provide limited security risk mitigations. 
 
-- Users SHALL be prevented from running custom scripts.
+**Note**: The settings in this section are only applicable if an agency is using Anyone links or verification code sharing. See each policy below for details.
 
-### 2.5.2 Resources
+### Policies
+#### MS.SHAREPOINT.3.1v1
+Expiration days for anyone links SHALL be set to 30 days or less.
+
+<!--Policy: MS.SHAREPOINT.3.1v1; Criticality: SHALL -->
+- _Rationale:_ Anyone links may be used to provide access to information for a short period of time. Without expiration, however, access is indefinite. By setting expiration timers for anyone links, administrators prevent unintended sustained access to information.
+- _Last modified:_ June 2023
+- _Note:_ This policy is only applicable if the external sharing slider on the admin center sharing page is set to Anyone.
+
+#### MS.SHAREPOINT.3.2v1
+The allowable file and folder permissions for anyone links SHALL be set to View only.
+
+<!--Policy: MS.SHAREPOINT.3.1v1; Criticality: SHALL -->
+- _Rationale:_ Unauthorized changes to files can be made if permissions allow editing by anyone.  By restricting permissions on anyone links to View only, administrators prevent anonymous file changes.
+- _Last modified:_ June 2023
+- _Note:_ This policy is only applicable if the external sharing slider on the admin center sharing page is set to Anyone.
+
+#### MS.SHAREPOINT.3.3v1
+Reauthentication days for people who use a verification code SHALL be set to 30 days or less.
+
+<!--Policy: MS.SHAREPOINT.3.1v1; Criticality: SHALL -->
+- _Rationale:_ A verification code may be given out to provide access to information for a short period of time. Without expiration, however, access is indefinite. By setting expiration timers for verification code access, administrators prevent  unintended sustained access to information.
+- _Last modified:_ June 2023
+- _Note:_ This policy is only applicable if the external sharing slider on the admin center sharing page is set to Anyone or New and Existing Guests.
+
+### License Requirements
+
+- N/A
+
+### Resources
+
+- [Secure external sharing recipient experience \| Microsoft
+  Documents](https://learn.microsoft.com/en-us/sharepoint/what-s-new-in-sharing-in-targeted-release)
+
+### Implementation
+
+#### MS.SHAREPOINT.3.1v1 instructions:
+
+1.  Sign in to the **SharePoint admin center**.
+
+2.  Select **Policies** \> **Sharing**.
+
+3.  Scroll to the section **Choose expiration and permissions options for Anyone links**.
+
+4.  Select the checkbox **These links must expire within this many days**.
+
+5.  Enter **30** days or less.
+
+6.  Select **Save**.
+
+#### MS.SHAREPOINT.3.2v1 instructions:
+
+1.  Sign in to the **SharePoint admin center**.
+
+2.  Select **Policies** \> **Sharing**.
+
+3.  Scroll to the section **Choose expiration and permissions options for Anyone links**.
+
+4.  Set the configuration items in the section **These links can give these permissions**.
+
+5.  Set the **Files** option to **View**.
+
+6.  Set the **Folders** option to **View**.
+
+7.  Select **Save**.
+
+#### MS.SHAREPOINT.3.3v1 instructions:
+
+1.  Sign in to the **SharePoint admin center**.
+
+2.  Select **Policies** \> **Sharing**.
+
+3.  Expand **More external sharing settings**.
+
+4. Select **People who use a verification code must reauthenticate after this many days**.
+
+5.  Enter **30** days or less.
+
+6. Select **Save**.
+
+## 4. Custom Scripts
+
+This section provides policies for restricting custom scripts execution.
+
+#### MS.SHAREPOINT.4.1v1
+Users SHALL be prevented from running custom scripts on personal sites (aka OneDrive).
+
+<!--Policy: MS.SHAREPOINT.4.1v1; Criticality: SHALL -->
+- _Rationale:_ Scripts in OneDrive folders run in the context of the user visiting the site and have access to everything the user can access. By preventing custom scripts on personal sites, administrators block a path for potentially malicious code execution.
+- _Last modified:_ June 2023
+
+#### MS.SHAREPOINT.4.2v1
+Users SHALL be prevented from running custom scripts on self-service created sites.
+
+<!--Policy: MS.SHAREPOINT.4.2v1; Criticality: SHALL -->
+- _Rationale:_ Scripts on SharePoint sites run in the context of the user visiting the site and have access to everything the user can access. By preventing custom scripts on self-service created sites, administrators block a path for potentially malicious code execution.
+- _Last modified:_ June 2023
+
+### Resources
 
 - [Allow or prevent custom script \| Microsoft
   Documents](https://docs.microsoft.com/en-us/sharepoint/allow-or-prevent-custom-script)
 
-### 2.5.3 License Requirements
+### License Requirements
 
 - N/A
 
-### 2.5.4 Implementation
+### Implementation
 
-In the **SharePoint Classic admin center**:
+#### MS.SHAREPOINT.4.1v1 instructions:
 
-1.  Scroll to the **Custom Script** setting and select both of the
-    following:
+1.  Sign in to the **SharePoint admin center**.
 
-2.  **Prevent users from running custom script on personal sites.**
+2.  Select **Settings**.
 
-3.  **Prevent users from running custom script on self-service created
-    sites.**
+3.  Scroll down and select **classic settings page**.
+
+4.  Scroll to the **Custom Script** section.
+
+5.  Select **Prevent users from running custom script on personal sites**.
+
+6.  Select **Ok**.
+
+#### MS.SHAREPOINT.4.2v1 instructions:
+
+1.  Sign in to the **SharePoint admin center**.
+
+2.  Select **Settings**.
+
+3.  Scroll down and select **classic settings page**.
+
+4.  Scroll to the **Custom Script** section.
+
+5.  Select **Prevent users from running custom script on self-service created sites**.
+
+6.  Select **Ok**.
+
 
 # Acknowledgements
 
@@ -287,42 +331,26 @@ response to Section 3 of [Executive Order (EO) 14028, *Improving the
 Nation’s
 Cybersecurity*](https://www.federalregister.gov/documents/2021/05/17/2021-10460/improving-the-nations-cybersecurity):
 
-- Consumer Financial Protection Bureau (CFPB)
-
-- Department of the Interior (DOI)
-
-- National Aeronautics and Space Administration (NASA)
-
+- The MITRE Corporation
 - Sandia National Laboratories (Sandia)
 
-- U.S. Census Bureau (USCB)
+The SCBs were informed by materials produced by the following organizations: 
 
-- U.S. Geological Survey (USGS)
 
+- Center for Internet Security (CIS)
+- Internet Engineering Task Force (IETF)
+- Mandiant
+- Microsoft
+- U.S. Defense Information Systems Agency (DISA)
+- U.S. National Institute of Standards (NIST)
+- U.S. Office of Management and Budget (OMB)
+
+The cross-agency collaboration and partnerships developed during this initiative serve as an example for solving complex problems faced by the federal government. CISA also thanks the Cybersecurity Innovation Tiger Team (CITT) for its leadership and the following federal agencies that provided input during the development of the baselines:
+
+- Consumer Financial Protection Bureau (CFPB)
+- Department of the Interior (DOI)
+- National Aeronautics and Space Administration (NASA)
 - U.S. Office of Personnel Management (OPM)
-
 - U.S. Small Business Administration (SBA)
-
-The cross-agency collaboration and partnerships developed during this
-initiative serve as an example for solving complex problems faced by the
-federal government.
-
-**Cybersecurity Innovation Tiger Team (CITT) Leadership**
-
-Beau Houser (USCB), Sanjay Gupta (SBA), Michael Witt (NASA), James
-Saunders (OPM), Han Lin (Sandia), Andrew Havely (DOI).
-
-**CITT Authors**
-
-Trafenia Salzman (SBA), Benjamin McChesney (OPM), Robert Collier (USCB),
-Matthew Snitchler (Sandia), Darryl Purdy (USCB), Brandon Frankens
-(NASA), Brandon Goss (NASA), Nicole Bogeajis (DOI/USGS), Kevin Kelly
-(DOI), Adnan Ehsan (CFPB), Michael Griffin (CFPB), Vincent Urias
-(Sandia), Angela Calabaza (Sandia).
-
-**CITT Contributors**
-
-Dr. Mukesh Rohatgi (MITRE), Lee Szilagyi (MITRE), Nanda Katikaneni
-(MITRE), Ted Kolovos (MITRE), Thomas Comeau (MITRE), Karen Caraway
-(MITRE), Jackie Whieldon (MITRE), Jeanne Firey (MITRE), Kenneth Myers
-(General Services Administration).
+- U.S. Census Bureau (USCB)
+- U.S. Geological Survey (USGS)
